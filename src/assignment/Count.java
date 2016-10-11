@@ -1,8 +1,7 @@
 package assignment;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
+import java.util.stream.Stream;
 
 /**
  * Counts the number of times a particular word occurred in input.
@@ -31,6 +30,15 @@ class Count {
 
     Map<String, Integer> getCounts() {
         return Collections.unmodifiableMap(myWordCount);
+    }
+
+    static Count ofMissingWords(Collection<Set<String>> records, Set<String> query_words) {
+        Count missing_words_count = new Count();
+        Stream<Set<String>> matching_records = records.stream().filter(record -> record.containsAll(query_words));
+        Stream<String> missing_words = matching_records.flatMap(Collection::stream)
+                .filter(word -> ! query_words.contains(word));
+        missing_words.forEach(missing_words_count::count);
+        return missing_words_count;
     }
 
 }

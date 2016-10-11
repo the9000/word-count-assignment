@@ -5,7 +5,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
-import java.util.stream.Collector;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -35,10 +34,6 @@ public class Main {
         return builder.toString();
     }
 
-    static Stream<String> lineAsWordStream(String input) {
-        return Arrays.stream(input.split(","));
-    }
-
     static boolean divulge(Object x) {
         System.out.println(String.valueOf(x));
         return true;
@@ -55,7 +50,7 @@ public class Main {
         try {
             // We do not try to detect and report repeating words in data; we treat them as one.
             Stream<String> record_lines = Files.lines(record_file_path);
-            Stream<Set<String>> records_set_stream = record_lines.map(Main::lineAsWordStream).map(st -> st.collect(Collectors.toSet()));;
+            Stream<Set<String>> records_set_stream = Parse.asStreamOfSets(record_lines);
 
             // We cannot operate directly on the stream of records, because we have more than one query.
             List<Set<String>> records = records_set_stream.collect(Collectors.toList());
@@ -64,17 +59,11 @@ public class Main {
 
             // Prepare the queries to run against the counts we have.
             Stream<String> query_lines = Files.lines(query_file_path);
-            Stream<Set<String>> word_sets = query_lines.map(Main::lineAsWordStream)
-                    .map(st -> st.collect(Collectors.toSet()));
+            Stream<Set<String>> word_sets = Parse.asStreamOfSets(query_lines);
 
             // Run each word set as a query against the counts.
             word_sets.forEach(query_words -> {
-                System.out.println(query_words.toString()); // XXX
-                Count missing_words_count = new Count();
-                Stream<Set<String>> matching_records = records.stream().filter(record -> record.containsAll(query_words));
-                Stream<String> missing_words = matching_records.flatMap(Collection::stream).filter(word -> !query_words.contains(word));
-                missing_words.forEach(word -> missing_words_count.count(word));
-                System.out.println(jsonify(missing_words_count.getCounts()));
+                System.out.println(jsonify(Count.ofMissingWords(records, query_words).getCounts()));
             });
 
         } catch (IOException e) {
